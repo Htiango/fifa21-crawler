@@ -97,30 +97,33 @@ class Player:
             title = info.th.text.strip()
             value = info.td.text.strip()
 
-            if title == "Name":
-                self.full_name = value
-            if title == "Club":
-                self.club = value
-            if title == "Nation":
-                self.nation = value
-            if title == "League":
-                self.league = value
-            if title == "Skills":
-                self.skills = int(value)
-            if title == "Weak Foot":
-                self.weak_foot = int(value)
-            if title == "Intl. Rep":
-                self.intl_rep = int(value)
-            if title == "Foot":
-                self.foot = value
-            if title == "Height":
-                self.height = int(value[:3])
-            if title == "Weight":
-                self.weight = int(value)
-            if title == "Revision":
-                self.revision = value
-            if title == "Origin":
-                self.origin = value
+            try:
+                if title == "Name":
+                    self.full_name = value
+                if title == "Club":
+                    self.club = value
+                if title == "Nation":
+                    self.nation = value
+                if title == "League":
+                    self.league = value
+                if title == "Skills":
+                    self.skills = int(value)
+                if title == "Weak Foot":
+                    self.weak_foot = int(value)
+                if title == "Intl. Rep":
+                    self.intl_rep = int(value)
+                if title == "Foot":
+                    self.foot = value
+                if title == "Height":
+                    self.height = int(value[:3])
+                if title == "Weight":
+                    self.weight = int(value)
+                if title == "Revision":
+                    self.revision = value
+                if title == "Origin":
+                    self.origin = value
+            except Exception:
+                continue
 
 
     def __fetch_player_stats(self):
