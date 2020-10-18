@@ -84,6 +84,14 @@ class Player:
 
     def __fetch_player_info(self):
         info_panel = self.soup.find(attrs={"id": "info_content"})
+        self.skills = -1
+        self.weak_foot = -1
+        self.intl_rep = -1
+        self.foot = ""
+        self.height = 0
+        self.weight = 0
+        self.revision = "" 
+        self.origin = ""
 
         for info in info_panel.find_all("tr"):
             title = info.th.text.strip()
