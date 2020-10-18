@@ -123,7 +123,10 @@ def fetch_one(url):
 @timeit
 def fetch_page(page_num):
     page_url = "https://www.futbin.com/players?page={}".format(page_num)
-    soup = BeautifulSoup(requests.get(page_url).content, 'html.parser')
+    response = requests.get(page_url)
+    if response.status_code == 403:
+        logger.error("YOU ARE BANNED BY FUTBIN!!!!!!!")
+    soup = BeautifulSoup(response.content, 'html.parser')
     link_panels = soup.find_all("a", class_="player_name_players_table")
     for link_panel in link_panels:
         url_suffix = link_panel["href"]
