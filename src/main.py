@@ -4,6 +4,8 @@ import logging
 import logging.config
 import requests
 import sqlalchemy as db
+import sys
+import traceback
 import time
 
 from bs4 import BeautifulSoup
@@ -40,6 +42,9 @@ def fetch_one(url):
     try:
         player = Player(url)
     except Exception as e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        logger.error(repr(traceback.format_exception(exc_type, exc_value,
+            exc_traceback)))
         logger.error(e)
         logger.error("Failed to crawl for page: {}".format(url))
 
@@ -127,6 +132,9 @@ def fetch_page(page_num):
             logger.info("Start crawling on: {}".format(url))
             fetch_one(url)
         except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logger.error(repr(traceback.format_exception(exc_type, exc_value, 
+                exc_traceback)))
             logger.error(e)
             logger.error("Encountering errors while fetching one for page {}".format(url))
             logger.warning("Skipped for page {}".format(url))
@@ -169,5 +177,5 @@ for page_num in range(566):
     logger.info("Start crawling on page {}".format(page_num))
     fetch_page(page_num)
     logger.info("Finish crawling on page {} !".format(page_num))
-    logging.info("Sleep for 5 seconds!")
-    time.sleep(5)
+    logging.info("Sleep for 3 minutes!")
+    time.sleep(180)
