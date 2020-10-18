@@ -165,7 +165,9 @@ player_usage_table = PlayerUsage(metadata).table
 metadata.create_all(engine)
 logger.info("Created tables!")
 
-for page_num in range(5,7):
+for page_num in range(566):
     logger.info("Start crawling on page {}".format(page_num))
     fetch_page(page_num)
     logger.info("Finish crawling on page {} !".format(page_num))
+    logging.info("Sleep for 5 seconds!")
+    time.sleep(5)
