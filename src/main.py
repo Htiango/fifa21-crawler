@@ -1,3 +1,4 @@
+import argparse
 import copy
 import json
 import logging
@@ -21,6 +22,40 @@ from sqlalchemy.exc import IntegrityError
 logging.config.fileConfig(fname='logging.ini', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 CRAWL_PAGE = "https://www.futbin.com"
+
+
+logger.info("START!")
+logger.info("Reading credentials.......")
+with open('credentials.json', 'r') as f:
+    config = json.load(f)
+
+user = config['user']
+password = config["password"]
+host = config["host"]
+database = config["db"]
+logger.info("Loaded credentials!")
+
+connect_str_template = "mysql+pymysql://{user}:{password}@{host}/{db}"
+connect_str = connect_str_template.format(user=user, 
+                                          password=password,
+                                          host=host,
+                                          db=database)
+
+logger.info("Connecting to MySQL database........")
+engine = db.create_engine(connect_str)
+connection = engine.connect()
+metadata = db.MetaData()
+logger.info("Connected to database!")
+
+logger.info("Creating tables if not exist........")
+player_info_table = PlayerInfo(metadata).table
+club_table = Club(metadata).table
+nation_table = Nation(metadata).table
+player_stats_table = PlayerStats(metadata).table
+player_usage_table = PlayerUsage(metadata).table
+
+metadata.create_all(engine)
+logger.info("Created tables!")
 
 
 def timeit(method):
@@ -144,7 +179,7 @@ def fetch_page(page_num):
             logger.warning("Skipped for page {}".format(url))
 
 
-def fetch_player_links(page_start, page_end):
+def fetch_save_player_links(page_start, page_end):
     url_ls = []
     for page_num in range(page_start, page_end + 1):
         page_url = "https://www.futbin.com/players?page={}".format(page_num)
@@ -160,50 +195,35 @@ def fetch_player_links(page_start, page_end):
             url_ls.append(url)
         logger.info("Finsh page {}".format(page_num))
         time.sleep(2)
-    return url_ls
+    with open("player_links.json", "w") as f:
+        json.dump(url_ls, f)
+    return len(url_ls)
 
 
-logger.info("START!")
-logger.info("Reading credentials.......")
-with open('credentials.json', 'r') as f:
-    config = json.load(f)
+def fetch_stats():
+    pass
 
-user = config['user']
-password = config["password"]
-host = config["host"]
-database = config["db"]
-logger.info("Loaded credentials!")
 
-connect_str_template = "mysql+pymysql://{user}:{password}@{host}/{db}"
-connect_str = connect_str_template.format(user=user, 
-                                          password=password,
-                                          host=host,
-                                          db=database)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--crawel_version', type=str, required=True, 
+        help='Crawl what?', choices=["links", "stats", "all"])
+    parser.add_argument('-s', '--page_start', type=int, default=1, 
+        help='Crawel page start')
+    parser.add_argument('-e', '--page_end', type=int, default=2, 
+        help='Crawel page end')
 
-logger.info("Connecting to MySQL database........")
-engine = db.create_engine(connect_str)
-connection = engine.connect()
-metadata = db.MetaData()
-logger.info("Connected to database!")
+    args = parser.parse_args()
 
-logger.info("Creating tables if not exist........")
-player_info_table = PlayerInfo(metadata).table
-club_table = Club(metadata).table
-nation_table = Nation(metadata).table
-player_stats_table = PlayerStats(metadata).table
-player_usage_table = PlayerUsage(metadata).table
+    if args.crawel_version == "links":
+        fetch_save_player_links(args.page_start, args.page_end)
+    elif args.crawel_version == "stats":
+        fetch_stats()
+    else:
+        fetch_save_player_links(args.page_start, args.page_end)
+        fetch_stats()
 
-metadata.create_all(engine)
-logger.info("Created tables!")
 
-url_ls = fetch_player_links(1, 565)
+if __name__ == "__main__":
+    main()
 
-with open("player_links.json", "w") as f:
-    config = json.dump(url_ls, f)
-
-# for page_num in range(566):
-#     logger.info("Start crawling on page {}".format(page_num))
-#     fetch_page(page_num)
-#     logger.info("Finish crawling on page {} !".format(page_num))
-#     logging.info("Sleep for 3 minutes!")
-#     time.sleep(180)
