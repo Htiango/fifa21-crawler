@@ -2,7 +2,12 @@ import json
 import os
 import requests
 import time
+import logging
+import logging.config
 
+
+logging.config.fileConfig(fname='logging.ini', disable_existing_loggers=False)
+logger = logging.getLogger(__name__)
 
 URL_VALIDATE = 'https://www.futbin.com/21/'
 
@@ -17,14 +22,14 @@ class ProxyController:
         
 
     def _load_proxy_pool(self):
-        print("Loading pools")
+        logger.info("Loading pools")
         while True:
             proxy_pool_legacy = self.proxy_pool
             self.index = 0
             with open(self.proxy_path, "r") as f:
                 self.proxy_pool = json.load(f)
             if self.proxy_pool == proxy_pool_legacy or len(self.proxy_pool) == 0:
-                print("sleep")
+                logger.info("sleep")
                 time.sleep(120)
             else:
                 break
@@ -42,14 +47,14 @@ class ProxyController:
                 self._load_proxy_pool()
             proxy = self.proxy_pool[self.index]
             self.index += 1
-            print("test on {}".format(proxy))
+            logger.info("test on {}".format(proxy))
             if self._validate(proxy):
                 break
         proxy_str = "http://" + proxy["https"]
         self.proxy_str = proxy_str
-        print("----------------------")
-        print("Set for proxy: {}".format(proxy_str))
-        print("----------------------")
+        logger.info("----------------------")
+        logger.info("Set for proxy: {}".format(proxy_str))
+        logger.info("----------------------")
         os.environ['http_proxy'] = proxy_str
         os.environ['HTTP_PROXY'] = proxy_str
         os.environ['https_proxy'] = proxy_str
@@ -73,8 +78,8 @@ class ProxyController:
                 if response.status_code== 200:
                     return response
                 else:
-                    print("403 for {}".format(self.proxy_str))
+                    logger.info("403 for {}".format(self.proxy_str))
                     self._reset_proxy()
             except Exception as e:
-                print(e)
+                logger.info("Connection Error for {}".format(self.proxy_str))
                 self._reset_proxy()

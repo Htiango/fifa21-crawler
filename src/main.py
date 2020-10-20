@@ -181,13 +181,18 @@ def fetch_save_player_links(proxy_controller, page_start, page_end):
         json.dump(url_ls, f)
     return len(url_ls)
 
-
+@timeit
 def fetch_stats(proxy_controller):
-    with open("player_links.json", "w") as f:
+    with open("player_links.json", "r") as f:
         url_ls = json.load(f)
+
+    count = 0
 
     for url in url_ls:
         fetch_one(proxy_controller, url)
+        count += 1
+        if count % 100 == 0:
+            time.sleep(1)
 
 
 def main():
