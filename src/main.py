@@ -189,7 +189,10 @@ def fetch_stats(proxy_controller):
     count = 0
 
     for url in url_ls:
-        fetch_one(proxy_controller, url)
+        try:
+            fetch_one(proxy_controller, url)
+        except Exception as e:
+            logger.error("Failed to fetch: {}".format(url))
         count += 1
         if count % 100 == 0:
             time.sleep(1)

@@ -10,6 +10,7 @@ logging.config.fileConfig(fname='logging.ini', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 URL_VALIDATE = 'https://www.futbin.com/21/'
+USAGE_THRESHOLD = 360
 
 
 class ProxyController:
@@ -19,6 +20,7 @@ class ProxyController:
         self.proxy_pool = []
         self.index = 0
         self._reset_proxy()
+        self.usage = 0
         
 
     def _load_proxy_pool(self):
@@ -41,6 +43,7 @@ class ProxyController:
         os.environ.pop('HTTPS_PROXY', None)
 
     def _reset_proxy(self):
+        logger.info("RESETTING PROXY......")
         self._remove_proxy()
         while True:
             if self.index == len(self.proxy_pool):
@@ -55,6 +58,7 @@ class ProxyController:
         logger.info("----------------------")
         logger.info("Set for proxy: {}".format(proxy_str))
         logger.info("----------------------")
+        self.usage = 0
         os.environ['http_proxy'] = proxy_str
         os.environ['HTTP_PROXY'] = proxy_str
         os.environ['https_proxy'] = proxy_str
@@ -72,10 +76,14 @@ class ProxyController:
             return False
 
     def get_response(self, url):
+        if self.usage > USAGE_THRESHOLD:
+            logger.warning("Hitting {} usage threshold".format(USAGE_THRESHOLD))
+            self._reset_proxy()
         while True:
             try:
                 response = requests.get(url, timeout=10)
                 if response.status_code== 200:
+                    self.usage += 1
                     return response
                 else:
                     logger.info("403 for {}".format(self.proxy_str))
