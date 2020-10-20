@@ -11,6 +11,7 @@ import time
 
 from bs4 import BeautifulSoup
 from player import Player
+from proxy_controller import ProxyController
 from tables.club import Club
 from tables.nation import Nation
 from tables.player_info import PlayerInfo
@@ -58,6 +59,8 @@ metadata.create_all(engine)
 logger.info("Created tables!")
 
 
+
+
 def timeit(method):
     """
     decorator function to calculate the time
@@ -71,11 +74,15 @@ def timeit(method):
         return result
     return timed
 
+
 @timeit
-def fetch_one(url):
+def fetch_one(proxy_controller, url):
     logger.info("Crawling......")
+    response = proxy_controller.get_response(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
     try:
-        player = Player(url)
+        player = Player(soup, url)
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logger.error(repr(traceback.format_exception(exc_type, exc_value,
@@ -156,37 +163,12 @@ def fetch_one(url):
 
 
 @timeit
-def fetch_page(page_num):
-    page_url = "https://www.futbin.com/players?page={}".format(page_num)
-    response = requests.get(page_url)
-    if response.status_code == 403:
-        logger.error("YOU ARE BANNED BY FUTBIN!!!!!!!")
-        return
-    soup = BeautifulSoup(response.content, 'html.parser')
-    link_panels = soup.find_all("a", class_="player_name_players_table")
-    for link_panel in link_panels:
-        url_suffix = link_panel["href"]
-        url = CRAWL_PAGE + url_suffix
-        try:
-            logger.info("Start crawling on: {}".format(url))
-            fetch_one(url)
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            logger.error(repr(traceback.format_exception(exc_type, exc_value, 
-                exc_traceback)))
-            logger.error(e)
-            logger.error("Encountering errors while fetching one for page {}".format(url))
-            logger.warning("Skipped for page {}".format(url))
-
-
-def fetch_save_player_links(page_start, page_end):
+def fetch_save_player_links(proxy_controller, page_start, page_end):
     url_ls = []
     for page_num in range(page_start, page_end + 1):
         page_url = "https://www.futbin.com/players?page={}".format(page_num)
-        response = requests.get(page_url)
-        if response.status_code == 403:
-            logger.error("YOU ARE BANNED BY FUTBIN!!!!!!!")
-            return
+        logger.info("Starting on page {}".format(page_num))
+        response = proxy_controller.get_response(page_url)
         soup = BeautifulSoup(response.content, 'html.parser')
         link_panels = soup.find_all("a", class_="player_name_players_table")
         for link_panel in link_panels:
@@ -194,34 +176,41 @@ def fetch_save_player_links(page_start, page_end):
             url = CRAWL_PAGE + url_suffix
             url_ls.append(url)
         logger.info("Finsh page {}".format(page_num))
-        time.sleep(2)
+        time.sleep(1)
     with open("player_links.json", "w") as f:
         json.dump(url_ls, f)
     return len(url_ls)
 
 
-def fetch_stats():
-    pass
+def fetch_stats(proxy_controller):
+    with open("player_links.json", "w") as f:
+        url_ls = json.load(f)
+
+    for url in url_ls:
+        fetch_one(proxy_controller, url)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--crawel_version', type=str, required=True, 
         help='Crawl what?', choices=["links", "stats", "all"])
+    parser.add_argument('-f', '--proxy_file', type=str, required=True, 
+        help='proxy poll file')
     parser.add_argument('-s', '--page_start', type=int, default=1, 
         help='Crawel page start')
     parser.add_argument('-e', '--page_end', type=int, default=2, 
         help='Crawel page end')
 
     args = parser.parse_args()
+    proxy_controller = ProxyController(args.proxy_file)
 
     if args.crawel_version == "links":
-        fetch_save_player_links(args.page_start, args.page_end)
+        fetch_save_player_links(proxy_controller, args.page_start, args.page_end)
     elif args.crawel_version == "stats":
-        fetch_stats()
+        fetch_stats(proxy_controller)
     else:
-        fetch_save_player_links(args.page_start, args.page_end)
-        fetch_stats()
+        fetch_save_player_links(proxy_controller, args.page_start, args.page_end)
+        fetch_stats(proxy_controller)
 
 
 if __name__ == "__main__":

@@ -8,12 +8,12 @@ from bs4.element import Tag
 
 class Player:
 
-    def __init__(self, url):
+    def __init__(self, soup, url):
         """Form a complex number.
 
         url -- Futbin url link
         """
-        self.soup = BeautifulSoup(requests.get(url).content, 'html.parser')
+        self.soup = soup
         self.url = url
         self.__fetch_card_info()
         self.__fetch_usgae()
