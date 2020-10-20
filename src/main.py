@@ -126,6 +126,7 @@ def fetch_page(page_num):
     response = requests.get(page_url)
     if response.status_code == 403:
         logger.error("YOU ARE BANNED BY FUTBIN!!!!!!!")
+        return
     soup = BeautifulSoup(response.content, 'html.parser')
     link_panels = soup.find_all("a", class_="player_name_players_table")
     for link_panel in link_panels:
@@ -141,6 +142,25 @@ def fetch_page(page_num):
             logger.error(e)
             logger.error("Encountering errors while fetching one for page {}".format(url))
             logger.warning("Skipped for page {}".format(url))
+
+
+def fetch_player_links(page_start, page_end):
+    url_ls = []
+    for page_num in range(page_start, page_end + 1):
+        page_url = "https://www.futbin.com/players?page={}".format(page_num)
+        response = requests.get(page_url)
+        if response.status_code == 403:
+            logger.error("YOU ARE BANNED BY FUTBIN!!!!!!!")
+            return
+        soup = BeautifulSoup(response.content, 'html.parser')
+        link_panels = soup.find_all("a", class_="player_name_players_table")
+        for link_panel in link_panels:
+            url_suffix = link_panel["href"]
+            url = CRAWL_PAGE + url_suffix
+            url_ls.append(url)
+        logger.info("Finsh page {}".format(page_num))
+        time.sleep(2)
+    return url_ls
 
 
 logger.info("START!")
@@ -176,9 +196,14 @@ player_usage_table = PlayerUsage(metadata).table
 metadata.create_all(engine)
 logger.info("Created tables!")
 
-for page_num in range(566):
-    logger.info("Start crawling on page {}".format(page_num))
-    fetch_page(page_num)
-    logger.info("Finish crawling on page {} !".format(page_num))
-    logging.info("Sleep for 3 minutes!")
-    time.sleep(180)
+url_ls = fetch_player_links(1, 565)
+
+with open("player_links.json", "w") as f:
+    config = json.dump(url_ls, f)
+
+# for page_num in range(566):
+#     logger.info("Start crawling on page {}".format(page_num))
+#     fetch_page(page_num)
+#     logger.info("Finish crawling on page {} !".format(page_num))
+#     logging.info("Sleep for 3 minutes!")
+#     time.sleep(180)
